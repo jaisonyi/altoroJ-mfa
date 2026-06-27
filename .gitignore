@@ -1,0 +1,27 @@
+# Build output
+/build/
+/.gradle/
+/bin/
+/logs/
+
+# IDE / editor
+/.idea/
+/.settings/
+/.vscode/
+/.project
+/.classpath
+
+# Tooling / local agents
+/.claude/
+/.primordial/
+/.github/modernize/
+
+# AppScan / scan artifacts
+/.scans/
+*.ozasmt
+*.paf
+*.ppf
+/altoroj_test_staging/
+
+# OS
+.DS_Store
