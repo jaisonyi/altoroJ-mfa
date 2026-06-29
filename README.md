@@ -49,6 +49,68 @@ This fork adds time-based one-time password (TOTP) multi-factor authentication c
 Note: seeded demo users start un-enrolled, so each will be taken through enrollment on its first login.
 
 
+# Resetting / initializing the database (un-enroll all users)
+
+AltoroJ stores everything — accounts, transactions, and the MFA enrollment state
+(`TOTP_SECRET` / `MFA_ENABLED`) — in an embedded Apache Derby database. If you
+want a clean slate (for example, to **un-enroll all users** so they go through
+TOTP enrollment again, or to clear test data), you have two options.
+
+## Option 1 — Force a DB reset via `app.properties` (recommended)
+
+This avoids hunting for the database folder on disk.
+
+1. Edit the **deployed** app's properties file on the server, e.g. on Tomcat:
+
+   ```
+   <Tomcat>\webapps\altoromutual\WEB-INF\app.properties
+   ```
+
+2. Set (uncomment / add) this line:
+
+   ```
+   database.reinitializeOnStart=true
+   ```
+
+3. **Restart Tomcat.** On the next database access (first login), AltoroJ
+   **drops and recreates** its tables from seed data → **all users are
+   un-enrolled**, regardless of where the database folder lives on disk.
+
+4. Log in as `jsmith` / `demo1234` → you should now reach the **enrollment**
+   page (`mfaSetup.jsp`), not the OTP/verify prompt.
+
+5. (Optional) Set `database.reinitializeOnStart=false` again and restart, so the
+   database is not wiped on every subsequent restart.
+
+This is the surest method because it does not depend on locating the database
+folder — handy when Tomcat runs as a Windows service and the DB lives under an
+account profile you can't easily find.
+
+## Option 2 — Delete the Derby database folder
+
+AltoroJ keeps the database at `<home of the OS user Tomcat runs as>\altoro\altoro`.
+
+1. Find the exact path: open Tomcat's `logs\catalina*.log` and look for the line
+   `Derby Home=...\altoro\` that AltoroJ prints on startup. (On Windows, a
+   service running as *Local System* uses
+   `C:\Windows\System32\config\systemprofile\altoro\`; a service or user with a
+   normal profile uses `C:\Users\<account>\altoro\`.)
+2. **Stop Tomcat completely** and confirm its `java`/`java.exe` process has
+   exited (Derby locks the files while running, so deleting during runtime will
+   not take effect).
+3. Delete the `altoro` folder at that path (use an elevated/Administrator prompt
+   for the System32 location).
+4. Start Tomcat. The database is recreated fresh on the first login.
+
+> Running multiple AltoroJ instances? Each instance uses the `altoro` folder
+> under the home of the account **its** Tomcat runs as, so confirm the correct
+> path from **that** Tomcat's own `catalina` log before deleting, and reset only
+> the instance you intend to.
+
+After either option, re-enrolled users receive **new** TOTP secrets — update any
+external configuration (e.g. an AppScan OTP "Secret key") accordingly.
+
+
 # Building (this fork)
 
 The build was modernized from the original Gradle 3 / Java 8 setup:
